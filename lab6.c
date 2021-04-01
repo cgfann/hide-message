@@ -1,13 +1,9 @@
 /**
- * This program reads a .wav file to decode a message hidden in the least significant bits of data samples in the file.
- * The number of bits per sample used to store information for the secret message is provided as a command line argument
- * along with the name of the input .wav file and the output file to which the message will be printed. The function
- * get_wav_args() parses command line arguments. If there is an issue with the command line arguments, a message will
- * be printed and the program will exit. 
+ * FIXME
  *
  * @author Charlotte Fanning {@literal <fanncg18@wfu.edu>}
- * @date Mar. 29, 2021
- * @assignment Lab 5  
+ * @date April 5, 2021
+ * @assignment Lab 6  
  * @course CSC 250
  **/
 
@@ -32,23 +28,35 @@ int main(int argc, char *argv[])
     int wav_ok = 0;     
     int bits;           /* number of least significant bits contributing to the message per sample*/
     char wav_file_name[256];
+    char text_file_name[256];
     char new_wav_file_name[256];
     int args_ok;
 
-    args_ok = get_wav_args(argc, argv, &bits, wav_file_name, new_wav_file);
+    args_ok = get_wav_args(argc, argv, &bits, wav_file_name, text_file_name);
     if (!args_ok) {
         printf("exiting...");
         return 1;
     }
 
-    wav_file = fopen(wav_file_name, "rbe"); 
-    new_wav_file = fopen(new_wav_file_name, "wbe");
+    if (strcmp(wav_file_name + strlen(wav_file_name) - 4, ".wav")) {
+        printf(".wav file %s is missing \".wav\" \n", wav_file_name);
+        return 2;
+    }
+    strcpy(new_wav_file_name, wav_file_name);
+    strcpy((new_wav_file_name + strlen(new_wav_file_name) - 4), "_msg.wav");
     
+    wav_file = fopen(wav_file_name, "rbe"); 
     if (!wav_file) {
         printf("could not open wav file %s \n", argv[3]);
         return 2;
     }
 
+    new_wav_file = fopen(new_wav_file_name, "wbe");
+    if(!new_wav_file) {
+        printf("could not create .wav file %s \n", new_wav_file_name);
+        return 2;
+    }
+    
     wav_ok = read_wav_header(wav_file, new_wav_file, &sample_size, &num_samples);
     if (!wav_ok) {
        printf("wav file %s has incompatible format \n", argv[1]);   
