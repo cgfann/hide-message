@@ -100,6 +100,9 @@ int process_header(FILE *wav_file, FILE *new_wav_file, short *sample_size_ptr, i
     int chunk_size = 0;        /* number of bytes in chunk */
     short audio_format = 0;    /* audio format type, PCM = 1 */
     short num_channels = 0;    
+    int sample_rate = 0;
+    int byte_rate = 0;
+    short block_align = 0;
     short bits_per_smp = 0; 
     int data_bytes = 0;        /* number of bytes of data in all samples*/
 
@@ -130,7 +133,14 @@ int process_header(FILE *wav_file, FILE *new_wav_file, short *sample_size_ptr, i
     fread(&num_channels, sizeof(num_channels), 1, wav_file);
     fwrite(&num_channels, sizeof(num_channels), 1, new_wav_file);
 
-    fseek(wav_file, 10, SEEK_CUR);                            
+    fread(&sample_rate, sizeof(sample_rate), 1, wav_file);
+    fwrite(&sample_rate, sizeof(sample_rate), 1, new_wav_file);
+
+    fread(&byte_rate, sizeof(byte_rate), 1, wav_file);
+    fwrite(&byte_rate, sizeof(byte_rate), 1, new_wav_file);
+
+    fread(&block_align, sizeof(block_align), 1, wav_file);
+    fwrite(&block_align, sizeof(block_align), 1, new_wav_file);
 
     fread(&bits_per_smp, sizeof(bits_per_smp), 1, wav_file);
     fwrite(&bits_per_smp, sizeof(bits_per_smp), 1, new_wav_file);
