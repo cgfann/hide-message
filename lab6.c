@@ -12,6 +12,7 @@
 
 #include "get_wav_args.h"
 #include <math.h>  
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>  
 #include <string.h>  
@@ -77,15 +78,10 @@ int main(int argc, char *argv[])
     num_chars = process_data(wav_file, new_wav_file, text_file, sample_size, num_samples, num_lsb);
     printf("%d characters written to %s \n", num_chars, new_wav_file_name);
 
-    if (wav_file) {
-        fclose(wav_file);
-    }
-    if (new_wav_file) {
-        fclose(new_wav_file);
-    }
-    if (text_file) {
-        fclose(text_file);
-    }
+    if (wav_file) fclose(wav_file);
+    if (new_wav_file) fclose(new_wav_file);
+    if (text_file) fclose(text_file);
+    
     return 0;
 }
 
@@ -172,12 +168,12 @@ int process_data(FILE *wav_file, FILE *new_wav_file, FILE *text_file, short samp
     int sample = 0;
     int new_sample = 0;                /* sample with modified least significant bits, to be written into new_wav_file */
     unsigned int mask = 0;  
-    unsigned char smiley[] = ":)";
-    unsigned char ch = 0;
+    char smiley[] = ":)";
+    char ch = 0;
     int num_samples_written = 0;
     int num_chars = 0;           
-    int i;
-    int j;
+    unsigned int i;
+    unsigned int j;
 
     switch (num_lsb) {
     case 1:
@@ -199,11 +195,12 @@ int process_data(FILE *wav_file, FILE *new_wav_file, FILE *text_file, short samp
 
             fread(&sample, sample_size, 1, wav_file);
             if (sample_size == 2) {
-                sample = (short)sample;                
+                sample = (unsigned short)sample;                
             }     
-            new_sample = (~mask & sample) | (msg_bits >> i);     /* turn off LSBs from original sample, place message bits */
+            new_sample = (~mask & sample);
+            new_sample = new_sample | (msg_bits >> i);     /* turn off LSBs from original sample, place message bits */
             if (sample_size == 2) {
-                new_sample = (short)new_sample;
+                new_sample = (unsigned short)new_sample;
             }
             fwrite(&new_sample, sample_size, 1, new_wav_file);
             num_samples_written++;
@@ -219,7 +216,7 @@ int process_data(FILE *wav_file, FILE *new_wav_file, FILE *text_file, short samp
             fread(&sample, sample_size, 1, wav_file);
             if (sample_size == 2) {
                 sample = (short)sample;                 
-            }     
+            }
             new_sample = (~mask & sample) | (msg_bits >> j);     /* turn off LSBs from original sample, place message bits */
             if (sample_size == 2) {
                 new_sample = (short)new_sample;
@@ -232,6 +229,9 @@ int process_data(FILE *wav_file, FILE *new_wav_file, FILE *text_file, short samp
     /* copy the rest of the data */
     while (num_samples_written < num_samples) {
         fread(&sample, sample_size, 1, wav_file);
+        if(sample_size == 2) {
+            sample = (short)sample;
+        }
         fwrite(&sample, sample_size, 1, new_wav_file);
         num_samples_written++;                                     
     }
