@@ -190,17 +190,17 @@ int process_data(FILE *wav_file, FILE *new_wav_file, FILE *text_file, short samp
     /* leave enough samples to encrypt ":)" even if the message has to be truncated. */
     while ((ch != EOF) && (num_samples_written < (num_samples - (16 / num_lsb)))) {
         num_chars++;
-        for (i = 8 - num_lsb; i > 0; i -= num_lsb) {
-            msg_bits = ch & (mask << i);                         /* extract particular bits from message character*/
+        for (i = 8; i > 0; i -= num_lsb) {
+            msg_bits = ch & (mask << (i - num_lsb));                         /* extract particular bits from message character*/
 
             fread(&sample, sample_size, 1, wav_file);
+            printf("%d\n", i);
             if (sample_size == 2) {
-                sample = (unsigned short)sample;                
-            }     
-            new_sample = (~mask & sample);
-            new_sample = new_sample | (msg_bits >> i);     /* turn off LSBs from original sample, place message bits */
+                sample = (short)sample;                
+            }
+            new_sample = (~mask & sample) | (msg_bits >> (i - num_lsb));     /* turn off LSBs from original sample, place message bits */
             if (sample_size == 2) {
-                new_sample = (unsigned short)new_sample;
+                new_sample = (short)new_sample;
             }
             fwrite(&new_sample, sample_size, 1, new_wav_file);
             num_samples_written++;
@@ -210,14 +210,14 @@ int process_data(FILE *wav_file, FILE *new_wav_file, FILE *text_file, short samp
     for (i = 0; i < 2; i++) {
         ch = smiley[i];
         num_chars++;
-        for (j = 8 - num_lsb; j > 0; j -= num_lsb) {
-            msg_bits = ch & (mask << j);                         /* extract particular bits from message character */
+        for (j = 8; j > 0; j -= num_lsb) {
+            msg_bits = ch & (mask << (j - num_lsb));                         /* extract particular bits from message character */
 
             fread(&sample, sample_size, 1, wav_file);
             if (sample_size == 2) {
                 sample = (short)sample;                 
             }
-            new_sample = (~mask & sample) | (msg_bits >> j);     /* turn off LSBs from original sample, place message bits */
+            new_sample = (~mask & sample) | (msg_bits >> (j - num_lsb));     /* turn off LSBs from original sample, place message bits */
             if (sample_size == 2) {
                 new_sample = (short)new_sample;
             }
