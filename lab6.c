@@ -1,8 +1,10 @@
 /**
- * FIXME
+ * This program reads a .wav file and hides a message in the least significant bits of its samples which are then written to a new .wav 
+ * file. The number of bits per sample to store information, an input .wav file, and .txt file containing the message are provided as
+ * command line arguments. The function get_wav_args() parses command line arguments. If there is an issue with the command line arguments,
+ * or with the opening/processing of a file, a message will be printed and the program will exit. Return value 1 indicates a command line
+ * argument issue, a 2 indicates a formatting issue, and 3 indicates an issue with opening a file.  
  *
- * 
- * 
  * @author Charlotte Fanning {@literal <fanncg18@wfu.edu>}
  * @date April 5, 2021
  * @assignment Lab 6  
@@ -11,7 +13,6 @@
 
 
 #include "get_wav_args.h"
-#include <math.h>  
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>  
@@ -19,7 +20,7 @@
 
 
 int process_header(FILE *wav_file, FILE *new_wav_file, short *sample_size_ptr, int *num_samples_ptr);
-int process_data(FILE* wave_file, FILE *new_wav_file, FILE *text_file, short sample_size, int num_samples, int num_lsb);
+int process_data(FILE* wav_file, FILE *new_wav_file, FILE *text_file, short sample_size, int num_samples, int num_lsb);
 
 
 int main(int argc, char *argv[]) 
@@ -43,13 +44,13 @@ int main(int argc, char *argv[])
     }
 
     /* if the original wave file name does not have the proper format */
-    if (strcmp(wav_file_name + strlen(wav_file_name) - 4, ".wav")) {
+    if (strcmp(wav_file_name + strlen(wav_file_name) - 4, ".wav") != 0) {
         printf(".wav file %s is missing \".wav\" \n", wav_file_name);
         return 2;
     }
     /* new wave file has the name of the original file with _msg before the .wav extension */
-    strcpy(new_wav_file_name, wav_file_name);
-    strcpy((new_wav_file_name + strlen(new_wav_file_name) - 4), "_msg.wav");
+    memcpy(new_wav_file_name, wav_file_name, sizeof(wav_file_name));
+    memcpy((new_wav_file_name + strlen(new_wav_file_name) - 4), "_msg.wav", sizeof("_msg.wav"));
     
     wav_file = fopen(wav_file_name, "rbe"); 
     if (!wav_file) {
@@ -66,7 +67,7 @@ int main(int argc, char *argv[])
     header_ok = process_header(wav_file, new_wav_file,  &sample_size, &num_samples);
     if (!header_ok) {
        printf(".wav file %s has incompatible format \n", wav_file_name);   
-       return 4;
+       return 2;
     }
 
     text_file = fopen(text_file_name, "re");
@@ -78,9 +79,15 @@ int main(int argc, char *argv[])
     num_chars = process_data(wav_file, new_wav_file, text_file, sample_size, num_samples, num_lsb);
     printf("%d characters written to %s \n", num_chars, new_wav_file_name);
 
-    if (wav_file) fclose(wav_file);
-    if (new_wav_file) fclose(new_wav_file);
-    if (text_file) fclose(text_file);
+    if (wav_file) {
+        fclose(wav_file);
+    }
+    if (new_wav_file) {
+        fclose(new_wav_file);
+    }
+    if (text_file) {
+        fclose(text_file);
+    }
     
     return 0;
 }
@@ -100,7 +107,7 @@ int process_header(FILE *wav_file, FILE *new_wav_file, short *sample_size_ptr, i
     int byte_rate = 0;
     short block_align = 0;
     short bits_per_smp = 0; 
-    int data_bytes = 0;        /* number of bytes of data in all samples*/
+    int data_bytes = 0;        /* number of bytes of data in all samples */
 
     /* copy over information from wav_file to new_wav_file */
     fread(chunk_id, 4, 1, wav_file);
@@ -166,12 +173,13 @@ int process_data(FILE *wav_file, FILE *new_wav_file, FILE *text_file, short samp
 {
     unsigned char msg_bits = 0;        /* sequence of bits from the message to be written into new_wav_file samples */
     int sample = 0;
-    int new_sample = 0;                /* sample with modified least significant bits, to be written into new_wav_file */
+    unsigned int new_sample = 0;                /* sample with modified least significant bits, to be written into new_wav_file */
     unsigned int mask = 0;  
-    char smiley[] = ":)";
+    unsigned char smiley[] = ":)";
     char ch = 0;
     int num_samples_written = 0;
-    int num_chars = 0;           
+    int num_chars = 0;
+    unsigned int shift;                    
     unsigned int i;
     unsigned int j;
 
@@ -191,14 +199,15 @@ int process_data(FILE *wav_file, FILE *new_wav_file, FILE *text_file, short samp
     while ((ch != EOF) && (num_samples_written < (num_samples - (16 / num_lsb)))) {
         num_chars++;
         for (i = 8; i > 0; i -= num_lsb) {
-            msg_bits = ch & (mask << (i - num_lsb));                         /* extract particular bits from message character*/
+            shift = i - num_lsb;
+            msg_bits = (unsigned)ch & (mask << shift);                        /* extract particular bits from message character*/
 
             fread(&sample, sample_size, 1, wav_file);
-            printf("%d\n", i);
             if (sample_size == 2) {
                 sample = (short)sample;                
             }
-            new_sample = (~mask & sample) | (msg_bits >> (i - num_lsb));     /* turn off LSBs from original sample, place message bits */
+            new_sample = ~ mask & (unsigned)sample;
+            new_sample = new_sample | (msg_bits >> shift);    /* turn off LSBs from original sample, place message bits */
             if (sample_size == 2) {
                 new_sample = (short)new_sample;
             }
@@ -211,13 +220,15 @@ int process_data(FILE *wav_file, FILE *new_wav_file, FILE *text_file, short samp
         ch = smiley[i];
         num_chars++;
         for (j = 8; j > 0; j -= num_lsb) {
-            msg_bits = ch & (mask << (j - num_lsb));                         /* extract particular bits from message character */
+            shift = j - num_lsb;
+            msg_bits = (unsigned)ch & (mask << shift);                        /* extract particular bits from message character */
 
             fread(&sample, sample_size, 1, wav_file);
             if (sample_size == 2) {
                 sample = (short)sample;                 
             }
-            new_sample = (~mask & sample) | (msg_bits >> (j - num_lsb));     /* turn off LSBs from original sample, place message bits */
+            new_sample = ~ mask & (unsigned)sample;
+            new_sample = new_sample | (msg_bits >> shift);    /* turn off LSBs from original sample, place message bits */
             if (sample_size == 2) {
                 new_sample = (short)new_sample;
             }
