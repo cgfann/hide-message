@@ -171,8 +171,8 @@ int process_header(FILE *wav_file, FILE *new_wav_file, short *sample_size_ptr, i
  **/
 int process_data(FILE *wav_file, FILE *new_wav_file, FILE *text_file, short sample_size, int num_samples, int num_lsb) 
 {
-    unsigned char msg_bits = 0;        /* sequence of bits from the message to be written into new_wav_file samples */
-    int sample = 0;
+    unsigned char msg_bits = 0;                 /* sequence of bits from the message to be written into new_wav_file samples */
+    int sample = 0; 
     unsigned int new_sample = 0;                /* sample with modified least significant bits, to be written into new_wav_file */
     unsigned int mask = 0;  
     unsigned char smiley[] = ":)";
@@ -180,8 +180,8 @@ int process_data(FILE *wav_file, FILE *new_wav_file, FILE *text_file, short samp
     int num_samples_written = 0;
     int num_chars = 0;
     unsigned int shift;                    
-    unsigned int i;
-    unsigned int j;
+    int i;
+    int j;
 
     switch (num_lsb) {
     case 1:
@@ -207,7 +207,7 @@ int process_data(FILE *wav_file, FILE *new_wav_file, FILE *text_file, short samp
                 sample = (short)sample;                
             }
             new_sample = ~ mask & (unsigned)sample;
-            new_sample = new_sample | (msg_bits >> shift);    /* turn off LSBs from original sample, place message bits */
+            new_sample = new_sample | (unsigned)(msg_bits >> shift);          /* turn off LSBs from original sample, place message bits */
             if (sample_size == 2) {
                 new_sample = (short)new_sample;
             }
@@ -221,14 +221,14 @@ int process_data(FILE *wav_file, FILE *new_wav_file, FILE *text_file, short samp
         num_chars++;
         for (j = 8; j > 0; j -= num_lsb) {
             shift = j - num_lsb;
-            msg_bits = (unsigned)ch & (mask << shift);                        /* extract particular bits from message character */
+            msg_bits = (unsigned)ch & (mask << shift);                         /* extract particular bits from message character */
 
             fread(&sample, sample_size, 1, wav_file);
             if (sample_size == 2) {
                 sample = (short)sample;                 
             }
             new_sample = ~ mask & (unsigned)sample;
-            new_sample = new_sample | (msg_bits >> shift);    /* turn off LSBs from original sample, place message bits */
+            new_sample = new_sample | (unsigned)(msg_bits >> shift);           /* turn off LSBs from original sample, place message bits */
             if (sample_size == 2) {
                 new_sample = (short)new_sample;
             }
